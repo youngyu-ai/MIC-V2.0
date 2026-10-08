@@ -122,25 +122,35 @@ export const TriageCardView: React.FC<TriageCardViewProps> = ({
           }`}
           style={{ fontSize: `${bulletSize}px` }}
         >
-          {card.bullets.map((bullet, idx) => (
-            <li
-              key={idx}
-              className={`flex items-center ${
-                isCentered ? 'justify-center text-center' : 'justify-start text-left'
-              }`}
-            >
-              <span
-                className="text-[#8e8571] mr-1.5 font-bold select-none shrink-0"
-                style={{ fontSize: `${bulletSize - 1}px` }}
-                aria-hidden="true"
+          {card.bullets.map((bullet, idx) => {
+            const colonIdx = bullet.indexOf('：');
+            const hasPrefix = colonIdx !== -1;
+            const prefix = hasPrefix ? bullet.slice(0, colonIdx + 1) : '';
+            const content = hasPrefix ? bullet.slice(colonIdx + 1) : bullet;
+
+            return (
+              <li
+                key={idx}
+                className={`flex items-start ${
+                  isCentered ? 'justify-center text-center' : 'justify-start text-left'
+                }`}
               >
-                ▸
-              </span>
-              <span className="font-semibold text-stone-900 break-words">
-                {bullet}
-              </span>
-            </li>
-          ))}
+                <span
+                  className="text-[#8e8571] mr-1 font-bold select-none shrink-0 mt-0.5"
+                  style={{ fontSize: `${bulletSize - 2}px` }}
+                  aria-hidden="true"
+                >
+                  ▸
+                </span>
+                <span className="font-medium text-stone-900 break-words leading-snug">
+                  {hasPrefix && (
+                    <span className="font-bold text-stone-800">{prefix}</span>
+                  )}
+                  <span>{content}</span>
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </div>
 

@@ -659,52 +659,132 @@
     let currentCards = [];
 
     function formatBullets(rawClinical, cat) {
-      const bullets = [];
-      if (cat === 'green' || rawClinical.includes('可行走')) {
-        bullets.push('可自行行走');
-      } else {
-        bullets.push('無法自行行走');
-      }
+      const parts = rawClinical.split(/[、，,]/).map(s => s.trim()).filter(Boolean);
 
+      // 1. 【可否行走、意識狀態】
+      let walk = (cat === 'green' || rawClinical.includes('可行走') || rawClinical.includes('可自行行走')) ? '可自行行走' : '無法自行行走';
+      let neuro = '意識清楚 (能遵從指令)';
+      if (rawClinical.includes('無意識') || rawClinical.includes('意識喪失') || rawClinical.includes('意識不清') || cat === 'black') {
+        neuro = '無意識 / 昏迷 (對刺激無反應)';
+      } else if (rawClinical.includes('意識模糊') || rawClinical.includes('反應模糊')) {
+        neuro = '意識模糊 (無法遵從指令)';
+      } else if (rawClinical.includes('反應遲鈍') || rawClinical.includes('活動力差') || rawClinical.includes('表情呆滯')) {
+        neuro = '反應遲鈍，活動力差';
+      } else if (rawClinical.includes('焦躁不安') || rawClinical.includes('嗜睡')) {
+        neuro = '意識嗜睡/焦躁不安';
+      } else if (rawClinical.includes('意識清楚') || rawClinical.includes('言語清楚')) {
+        neuro = '意識清楚 (能遵從簡單指令)';
+      }
+      const line1 = `可否行走、意識狀態：${walk}、${neuro}`;
+
+      // 2. 【呼吸狀態、次數】
       const respMatch = rawClinical.match(/呼吸[:：]?\s*(\d+)\s*\/\s*min/i);
-      if (rawClinical.includes('無呼吸') || (respMatch && parseInt(respMatch[1], 10) === 0)) {
-        bullets.push('呼吸狀態：暢通呼吸道後仍無自主呼吸');
+      const noResp = rawClinical.includes('無呼吸') || rawClinical.includes('呼吸停止') || (respMatch && parseInt(respMatch[1], 10) === 0);
+      let respText = '';
+      if (noResp || cat === 'black') {
+        respText = '暢通呼吸道後仍無自主呼吸 (0 次/分)';
       } else if (respMatch) {
-        const rate = respMatch[1];
+        const rate = parseInt(respMatch[1], 10);
         let depth = '有自主呼吸';
-        if (rawClinical.includes('呼吸淺慢')) depth = '呼吸淺慢';
-        else if (rawClinical.includes('呼吸急促') || rawClinical.includes('呼吸淺快')) depth = '呼吸急促';
-        bullets.push(`${depth}，呼吸速率 ${rate} 次/分`);
-      } else {
-        bullets.push('有自主呼吸，頻率正常');
-      }
-
-      if (rawClinical.includes('無脈搏') || rawClinical.includes('無心跳')) {
-        bullets.push('動脈搏動：無脈搏 / 無心跳');
-      } else if (rawClinical.includes('橈動脈微弱')) {
-        bullets.push('橈動脈搏動：微弱');
-      } else if (rawClinical.includes('橈動脈強') || rawClinical.includes('橈動脈正常')) {
-        bullets.push('橈動脈搏動：正常可觸及');
-      } else if (rawClinical.includes('肱動脈微弱')) {
-        bullets.push('肱動脈搏動：微弱');
-      } else if (cat === 'black') {
-        bullets.push('動脈搏動：無法觸及');
-      } else {
-        bullets.push('橈動脈搏動：正常可觸及');
-      }
-
-      const crtMatch = rawClinical.match(/微血管充填時間[:：]?\s*([小大於0-9.]+秒?)/);
-      if (crtMatch) {
-        bullets.push(`微血管充填時間：${crtMatch[1]}`);
+        if (rawClinical.includes('呼吸淺慢') || rate < 10) depth = '呼吸淺慢';
+        else if (rawClinical.includes('呼吸淺快') || rate > 30) depth = '呼吸淺快';
+        else if (rawClinical.includes('呼吸急促')) depth = '呼吸急促';
+        else if (rawClinical.includes('呼吸急深')) depth = '呼吸急深';
+        else if (rawClinical.includes('呼吸微弱')) depth = '呼吸微弱';
+        else if (rawClinical.includes('呼吸費力')) depth = '呼吸費力';
+        respText = `${depth}，速率 ${rate} 次/分`;
+      } else if (rawClinical.includes('呼吸正常')) {
+        respText = '自主呼吸正常平穩，約 16 次/分';
       } else if (cat === 'red') {
-        bullets.push('微血管充填時間：≥ 2.5 秒');
-      } else if (cat === 'black') {
-        bullets.push('微血管充填時間：無血液灌流');
+        respText = '呼吸淺快，速率 34 次/分';
       } else {
-        bullets.push('微血管充填時間：< 2 秒');
+        respText = '自主呼吸平穩，速率 16 次/分';
+      }
+      const line2 = `呼吸狀態、次數：${respText}`;
+
+      // 3. 【微血管充填時間】
+      const crtMatch = rawClinical.match(/微血管充填時間[:：]?\s*([小大於0-9.]+秒?)/);
+      let crtText = '';
+      if (crtMatch) {
+        const rawVal = crtMatch[1].replace('秒', '');
+        crtText = `${rawVal} 秒`;
+        if (parseFloat(rawVal) >= 2 || rawVal.includes('大於')) {
+          crtText += ' (≥ 2秒，周邊灌流差)';
+        } else {
+          crtText += ' (< 2秒，灌流正常)';
+        }
+      } else if (rawClinical.includes('微血管充填時間：小於1秒')) {
+        crtText = '< 1 秒 (末梢灌流良好)';
+      } else if (cat === 'black') {
+        crtText = '無周邊血液灌流 (> 5秒)';
+      } else if (cat === 'red') {
+        crtText = '≥ 2.5 秒 (周邊血液灌流不足)';
+      } else {
+        crtText = '< 2 秒 (微血管回充迅速)';
+      }
+      const line3 = `微血管充填時間：${crtText}`;
+
+      // 4. 【其他臨床評估或傷情徵候、脈搏、血壓】
+      let pulseText = '';
+      if (rawClinical.includes('無脈搏') || rawClinical.includes('無心跳')) {
+        pulseText = '無動脈搏動/無心跳';
+      } else if (rawClinical.includes('橈動脈微弱')) {
+        pulseText = '橈動脈微弱';
+      } else if (rawClinical.includes('橈動脈強') || rawClinical.includes('橈動脈正常')) {
+        pulseText = '橈動脈正常有力';
+      } else if (rawClinical.includes('肱動脈微弱')) {
+        pulseText = '肱動脈微弱';
+      } else if (rawClinical.includes('肱動脈正常')) {
+        pulseText = '肱動脈正常';
+      } else if (rawClinical.includes('足背動脈正常')) {
+        pulseText = '足背動脈正常可觸及';
+      } else if (rawClinical.includes('頸動脈微弱')) {
+        pulseText = '頸動脈微弱';
+      } else if (cat === 'black') {
+        pulseText = '動脈無法觸及';
+      } else if (cat === 'red') {
+        pulseText = '橈動脈微弱或無法觸及';
+      } else {
+        pulseText = '橈動脈正常有力';
       }
 
-      return bullets;
+      let bpText = '';
+      if (cat === 'black') {
+        bpText = '0/0 mmHg';
+      } else if (cat === 'red') {
+        if (rawClinical.includes('橈動脈微弱') || rawClinical.includes('大出血') || rawClinical.includes('休克')) {
+          bpText = '80/48 mmHg (休克低血壓)';
+        } else if (rawClinical.includes('8 / min') || rawClinical.includes('氣胸')) {
+          bpText = '76/42 mmHg (缺氧性低血壓)';
+        } else {
+          bpText = '88/54 mmHg';
+        }
+      } else if (cat === 'yellow') {
+        bpText = '122/76 mmHg';
+      } else {
+        bpText = '118/74 mmHg';
+      }
+
+      const injuryClues = parts.filter(p => (
+        !p.includes('行走') &&
+        !p.includes('呼吸') &&
+        !p.includes('動脈') &&
+        !p.includes('心跳') &&
+        !p.includes('脈搏') &&
+        !p.includes('微血管') &&
+        !p.includes('意識') &&
+        !p.includes('反應')
+      ));
+      let injuryDesc = injuryClues.length > 0 ? injuryClues.join('、') : '';
+      if (!injuryDesc) {
+        if (cat === 'black') injuryDesc = '致命創傷、四肢冰冷';
+        else if (cat === 'red') injuryDesc = '全身多處重度挫傷、休克徵候';
+        else if (cat === 'yellow') injuryDesc = '中度骨折或創傷、局部壓痛';
+        else injuryDesc = '肢體輕度擦挫傷';
+      }
+      const line4 = `其他臨床評估或傷情徵候、脈搏、血壓：${injuryDesc}、${pulseText}、血壓 ${bpText}`;
+
+      return [line1, line2, line3, line4];
     }
 
     function generateDeck() {
@@ -823,12 +903,17 @@
                   </div>
                   <div class="card-divider"></div>
                   <ul class="card-bullets">
-                    ${c.bullets.map(b => `
-                      <li class="bullet-item">
-                        <span class="bullet-arrow">▸</span>
-                        <span>${b}</span>
-                      </li>
-                    `).join('')}
+                    ${c.bullets.map(b => {
+                      const cIdx = b.indexOf('：');
+                      const pfx = cIdx !== -1 ? b.slice(0, cIdx + 1) : '';
+                      const cnt = cIdx !== -1 ? b.slice(cIdx + 1) : b;
+                      return `
+                        <li class="bullet-item">
+                          <span class="bullet-arrow">▸</span>
+                          <span>${pfx ? `<strong>${pfx}</strong>` : ''}${cnt}</span>
+                        </li>
+                      `;
+                    }).join('')}
                   </ul>
                 </div>
                 <div class="card-footer">

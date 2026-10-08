@@ -147,8 +147,8 @@ export default function App() {
 
   const handleAddCardFromBank = (newCard: TriageCard) => {
     setCards((prev) => {
-      const updated = [...prev, { ...newCard, serialNumber: prev.length + 1 }];
-      return updated;
+      const updated = [...prev, newCard];
+      return updated.map((c, idx) => ({ ...c, serialNumber: idx + 1 }));
     });
     // Increment count
     setCounts((prev) => ({
