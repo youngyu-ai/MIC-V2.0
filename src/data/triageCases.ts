@@ -1351,7 +1351,7 @@ export function formatCaseBullets(rawClinical: string, category: TriageCategory)
   } else if (rawClinical.includes('意識清楚') || rawClinical.includes('言語清楚')) {
     neuroText = '意識清楚 (能遵從簡單指令)';
   }
-  const line1 = `可否行走、意識狀態：${walkText}、${neuroText}`;
+  const line1 = `${walkText}、${neuroText}`;
 
   // 2. 【呼吸狀態、次數】
   const respMatch = rawClinical.match(/呼吸[:：]?\s*(\d+)\s*\/\s*min/i);
@@ -1376,27 +1376,22 @@ export function formatCaseBullets(rawClinical: string, category: TriageCategory)
   } else {
     respText = '自主呼吸平穩，速率 16 次/分';
   }
-  const line2 = `呼吸狀態、次數：${respText}`;
+  const line2 = respText;
 
   // 3. 【微血管充填時間】
   const crtMatch = rawClinical.match(/微血管充填時間[:：]?\s*([小大於0-9.]+秒?)/);
   let crtText = '';
   if (crtMatch) {
-    const rawVal = crtMatch[1].replace('秒', '');
-    crtText = `${rawVal} 秒`;
-    if (parseFloat(rawVal) >= 2 || rawVal.includes('大於')) {
-      crtText += ' (≥ 2秒，周邊灌流差)';
-    } else {
-      crtText += ' (< 2秒，灌流正常)';
-    }
-  } else if (rawClinical.includes('微血管充填時間：小於1秒')) {
-    crtText = '< 1 秒 (末梢灌流良好)';
+    const rawVal = crtMatch[1].replace('秒', '').trim();
+    crtText = `${rawVal}秒`;
+  } else if (rawClinical.includes('微血管充填時間：小於1秒') || rawClinical.includes('小於1秒')) {
+    crtText = '<1秒';
   } else if (category === 'black') {
-    crtText = '無周邊血液灌流 (> 5秒)';
+    crtText = '無周邊血液灌流';
   } else if (category === 'red') {
-    crtText = '≥ 2.5 秒 (周邊血液灌流不足)';
+    crtText = '≥2.5秒';
   } else {
-    crtText = '< 2 秒 (微血管回充迅速)';
+    crtText = '<2秒';
   }
   const line3 = `微血管充填時間：${crtText}`;
 
@@ -1429,9 +1424,9 @@ export function formatCaseBullets(rawClinical: string, category: TriageCategory)
     bpText = '0/0 mmHg';
   } else if (category === 'red') {
     if (rawClinical.includes('橈動脈微弱') || rawClinical.includes('大出血') || rawClinical.includes('休克')) {
-      bpText = '80/48 mmHg (休克低血壓)';
+      bpText = '80/48 mmHg';
     } else if (rawClinical.includes('8 / min') || rawClinical.includes('氣胸')) {
-      bpText = '76/42 mmHg (缺氧性低血壓)';
+      bpText = '76/42 mmHg';
     } else {
       bpText = '88/54 mmHg';
     }
@@ -1460,7 +1455,7 @@ export function formatCaseBullets(rawClinical: string, category: TriageCategory)
     else if (category === 'yellow') injuryDesc = '中度骨折或創傷、局部壓痛';
     else injuryDesc = '肢體輕度擦挫傷';
   }
-  const line4 = `其他臨床評估或傷情徵候、脈搏、血壓：${injuryDesc}、${pulseText}、血壓 ${bpText}`;
+  const line4 = `${injuryDesc}、${pulseText}、血壓 ${bpText}`;
 
   return [line1, line2, line3, line4];
 }
@@ -1487,10 +1482,10 @@ export function generateProceduralCase(
 
   if (category === 'black') {
     bullets = [
-      '可否行走、意識狀態：無法自行行走、無意識 / 昏迷 (對刺激無反應)',
-      '呼吸狀態、次數：經暢通呼吸道處置後仍無自主呼吸 (0 次/分)',
-      '微血管充填時間：無周邊血液灌流 (> 5秒)',
-      '其他臨床評估或傷情徵候、脈搏、血壓：瞳孔散大固定、致命性創傷、動脈搏動無法觸及、血壓 0/0 mmHg',
+      '無法自行行走、無意識 / 昏迷 (對刺激無反應)',
+      '經暢通呼吸道處置後仍無自主呼吸 (0 次/分)',
+      '微血管充填時間：無周邊血液灌流',
+      '瞳孔散大固定、致命性創傷、動脈搏動無法觸及、血壓 0/0 mmHg',
     ];
     explanation = '暢通呼吸道後仍無自主呼吸，無脈搏心跳，判定黑色（死亡）';
     primaryInjury = '創傷後無自主呼吸與脈搏';
@@ -1501,7 +1496,7 @@ export function generateProceduralCase(
         rate: 32 + Math.floor(Math.random() * 8),
         injury: '胸壁挫傷血腫、多處深部撕裂傷',
         pulse: '橈動脈微弱',
-        crt: '3.0 秒 (≥ 2秒，周邊灌流差)',
+        crt: '3.0秒',
         bp: '84/50 mmHg',
         exp: '呼吸頻率大於30次/分，微血管充填時間大於2秒，判定紅色（立即處置）',
       },
@@ -1510,8 +1505,8 @@ export function generateProceduralCase(
         rate: 26,
         injury: '骨盆骨折併骨盆腔內大出血疑慮',
         pulse: '橈動脈無法觸及 (肱動脈微弱)',
-        crt: '3.5 秒 (≥ 2秒，周邊灌流差)',
-        bp: '78/46 mmHg (失血性休克)',
+        crt: '3.5秒',
+        bp: '78/46 mmHg',
         exp: '無法觸及橈動脈且微血管充填時間超過2秒，休克危象，判定紅色',
       },
       {
@@ -1519,17 +1514,17 @@ export function generateProceduralCase(
         rate: 22,
         injury: '頭部鈍傷併大片血腫、耳鼻無滲出液',
         pulse: '橈動脈可觸及微弱',
-        crt: '1.8 秒',
+        crt: '1.8秒',
         bp: '90/58 mmHg',
         exp: '無法遵從簡單口頭指令，中樞神經系統危急，判定紅色',
       },
     ];
     const picked = redReasons[Math.floor(Math.random() * redReasons.length)];
     bullets = [
-      '可否行走、意識狀態：無法自行行走、意識模糊 (無法遵從指令)',
-      `呼吸狀態、次數：呼吸淺快，速率 ${picked.rate} 次/分`,
+      '無法自行行走、意識模糊 (無法遵從指令)',
+      `呼吸淺快，速率 ${picked.rate} 次/分`,
       `微血管充填時間：${picked.crt}`,
-      `其他臨床評估或傷情徵候、脈搏、血壓：${picked.injury}、${picked.pulse}、血壓 ${picked.bp}`,
+      `${picked.injury}、${picked.pulse}、血壓 ${picked.bp}`,
     ];
     explanation = picked.exp;
     primaryInjury = picked.injury;
@@ -1544,10 +1539,10 @@ export function generateProceduralCase(
     const injury = yellowInjuries[Math.floor(Math.random() * yellowInjuries.length)];
     const rate = 16 + Math.floor(Math.random() * 8); // 16~24
     bullets = [
-      '可否行走、意識狀態：無法自行行走、意識清楚 (能遵從口頭指令)',
-      `呼吸狀態、次數：有自主呼吸，平穩，速率 ${rate} 次/分`,
-      '微血管充填時間：1.2 秒 (< 2秒，微血管回充迅速)',
-      `其他臨床評估或傷情徵候、脈搏、血壓：${injury}、橈動脈正常有力、血壓 122/76 mmHg`,
+      '無法自行行走、意識清楚 (能遵從口頭指令)',
+      `有自主呼吸，平穩，速率 ${rate} 次/分`,
+      '微血管充填時間：1.2秒',
+      `${injury}、橈動脈正常有力、血壓 122/76 mmHg`,
     ];
     explanation = '無法自行行走，但呼吸、循環、意識三大生命徵象均穩定，判定黃色（延遲處理）';
     primaryInjury = injury;
@@ -1563,10 +1558,10 @@ export function generateProceduralCase(
     const injury = greenInjuries[Math.floor(Math.random() * greenInjuries.length)];
     const rate = 14 + Math.floor(Math.random() * 6); // 14~20
     bullets = [
-      '可否行走、意識狀態：可自行行走、意識清楚 (言語正常、能遵從指示)',
-      `呼吸狀態、次數：有自主呼吸，速率 ${rate} 次/分`,
-      '微血管充填時間：小於 1 秒 (< 2秒，末梢循環良好)',
-      `其他臨床評估或傷情徵候、脈搏、血壓：${injury}、橈動脈正常有力、血壓 118/74 mmHg`,
+      '可自行行走、意識清楚 (言語正常、能遵從指示)',
+      `有自主呼吸，速率 ${rate} 次/分`,
+      '微血管充填時間：<1秒',
+      `${injury}、橈動脈正常有力、血壓 118/74 mmHg`,
     ];
     explanation = '第一時間可依口令自行行走離場，判定綠色（輕傷）';
     primaryInjury = injury;

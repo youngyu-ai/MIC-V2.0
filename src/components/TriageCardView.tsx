@@ -94,7 +94,6 @@ export const TriageCardView: React.FC<TriageCardViewProps> = ({
             className="font-extrabold text-stone-900 tracking-wide leading-tight text-center"
             style={{ fontSize: `${titleSize}px` }}
           >
-            <span className="text-stone-700 font-bold">年齡、性別：</span>
             <span>{card.demographics.replace(/^年齡[、，]性別[：:]\s*/, '')}</span>
           </h3>
 
@@ -124,10 +123,19 @@ export const TriageCardView: React.FC<TriageCardViewProps> = ({
           style={{ fontSize: `${bulletSize}px` }}
         >
           {card.bullets.map((bullet, idx) => {
-            const colonIdx = bullet.indexOf('：');
+            const cleanBullet = bullet
+              .replace(/^可否行走[、，]意識狀態[：:]\s*/, '')
+              .replace(/^呼吸狀態[、，]次數[：:]\s*/, '')
+              .replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '')
+              .replace(/\s*\([<≥>].*?\)/g, '')
+              .replace(/\s*\([^)]*灌流[^)]*\)/g, '')
+              .replace(/\s*\([^)]*低血壓[^)]*\)/g, '')
+              .replace(/\s*\([^)]*休克[^)]*\)/g, '');
+
+            const colonIdx = cleanBullet.indexOf('：');
             const hasPrefix = colonIdx !== -1;
-            const prefix = hasPrefix ? bullet.slice(0, colonIdx + 1) : '';
-            const content = hasPrefix ? bullet.slice(colonIdx + 1) : bullet;
+            const prefix = hasPrefix ? cleanBullet.slice(0, colonIdx + 1) : '';
+            const content = hasPrefix ? cleanBullet.slice(colonIdx + 1) : cleanBullet;
 
             return (
               <li
