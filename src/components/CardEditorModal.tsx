@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TriageCard, TriageCategory } from '../types';
 import { X, RefreshCw, Trash2, Check } from 'lucide-react';
 import { RAW_RED_CASES, RAW_YELLOW_CASES, RAW_GREEN_CASES, RAW_BLACK_CASES, formatCaseBullets } from '../data/triageCases';
@@ -25,13 +25,22 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
   const [bulletText, setBulletText] = useState(card.bullets.join('\n'));
   const [explanation, setExplanation] = useState(card.explanation || '');
 
+  useEffect(() => {
+    if (card) {
+      setCategory(card.category);
+      setDemographics(card.demographics);
+      setBulletText(card.bullets.join('\n'));
+      setExplanation(card.explanation || '');
+    }
+  }, [card]);
+
   const handleSwapRandom = () => {
     let pool = RAW_RED_CASES;
     if (category === 'yellow') pool = RAW_YELLOW_CASES;
     if (category === 'green') pool = RAW_GREEN_CASES;
     if (category === 'black') pool = RAW_BLACK_CASES;
 
-    const filtered = pool.filter((c) => !c.demographics.includes('孕婦'));
+    const filtered = pool.filter((c) => !c.demographics.includes('孕婦') && !c.clinical.includes('孕婦'));
     const randomPick = filtered[Math.floor(Math.random() * filtered.length)];
     if (randomPick) {
       setDemographics(randomPick.demographics);
@@ -47,10 +56,16 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
       .map((l) => l.trim())
       .filter(Boolean);
 
+    const ageMatch = demographics.match(/(\d+)\s*歲/);
+    const parsedAge = ageMatch ? parseInt(ageMatch[1], 10) : card.age;
+    const parsedGender: '男性' | '女性' = demographics.includes('女') ? '女性' : '男性';
+
     onSave({
       ...card,
       category,
       demographics,
+      age: parsedAge,
+      gender: parsedGender,
       bullets: lines,
       explanation,
     });

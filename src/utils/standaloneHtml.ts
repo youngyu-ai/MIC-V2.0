@@ -581,7 +581,7 @@ export function getStandaloneHtmlString(): string {
     <main class="preview-container">
       <div class="preview-bar no-print">
         <div style="font-weight: bold; color: #44403c;">
-          A4 縱向規格預覽 (210×297mm · 2×3 六人版)
+          A4 縱向規格預覽 (210×297mm · 2×3 六人版) · 已套用置中與大字體
         </div>
         <div style="color: #78716c; font-size: 12px;">
           💡 列印時請在印表機設定中勾選「背景圖形」以保留傷卡底色
@@ -657,7 +657,9 @@ export function getStandaloneHtmlString(): string {
         { id: 19, age: 18, gender: "男性", clinical: "無法行走、高處墜落、明顯多處骨折、無意識、無呼吸、無心跳", exp: "高墜無生命徵象" }
       ]
     };
+
     let currentCards = [];
+
     function formatBullets(rawClinical, cat) {
       const parts = rawClinical.split(/[、，,]/).map(s => s.trim()).filter(Boolean);
 
@@ -675,7 +677,7 @@ export function getStandaloneHtmlString(): string {
       } else if (rawClinical.includes('意識清楚') || rawClinical.includes('言語清楚')) {
         neuro = '意識清楚 (能遵從簡單指令)';
       }
-      const line1 = walk + '、' + neuro;
+      const line1 = \`\${walk}、\${neuro}\`;
 
       // 2. 【呼吸狀態、次數】
       const respMatch = rawClinical.match(/呼吸[:：]?\\s*(\\d+)\\s*\\/\\s*min/i);
@@ -692,7 +694,7 @@ export function getStandaloneHtmlString(): string {
         else if (rawClinical.includes('呼吸急深')) depth = '呼吸急深';
         else if (rawClinical.includes('呼吸微弱')) depth = '呼吸微弱';
         else if (rawClinical.includes('呼吸費力')) depth = '呼吸費力';
-        respText = depth + '，速率 ' + rate + ' 次/分';
+        respText = \`\${depth}，速率 \${rate} 次/分\`;
       } else if (rawClinical.includes('呼吸正常')) {
         respText = '自主呼吸正常平穩，約 16 次/分';
       } else if (cat === 'red') {
@@ -707,7 +709,7 @@ export function getStandaloneHtmlString(): string {
       let crtText = '';
       if (crtMatch) {
         const rawVal = crtMatch[1].replace('秒', '').trim();
-        crtText = rawVal + '秒';
+        crtText = \`\${rawVal}秒\`;
       } else if (rawClinical.includes('微血管充填時間：小於1秒') || rawClinical.includes('小於1秒')) {
         crtText = '<1秒';
       } else if (cat === 'black') {
@@ -717,7 +719,7 @@ export function getStandaloneHtmlString(): string {
       } else {
         crtText = '<2秒';
       }
-      const line3 = '微血管充填時間：' + crtText;
+      const line3 = \`微血管充填時間：\${crtText}\`;
 
       // 4. 【其他臨床評估或傷情徵候、脈搏、血壓】
       let pulseText = '';
@@ -777,15 +779,17 @@ export function getStandaloneHtmlString(): string {
         else if (cat === 'yellow') injuryDesc = '中度骨折或創傷、局部壓痛';
         else injuryDesc = '肢體輕度擦挫傷';
       }
-      const line4 = injuryDesc + '、' + pulseText + '、血壓 ' + bpText;
+      const line4 = \`\${injuryDesc}、\${pulseText}、血壓 \${bpText}\`;
 
       return [line1, line2, line3, line4];
     }
+
     function generateDeck() {
       const redCount = parseInt(document.getElementById('count-red').value) || 0;
       const yellowCount = parseInt(document.getElementById('count-yellow').value) || 0;
       const greenCount = parseInt(document.getElementById('count-green').value) || 0;
       const blackCount = parseInt(document.getElementById('count-black').value) || 0;
+
       const deck = [];
       const addCategoryCards = (cat, count) => {
         const pool = CASE_BANK[cat];
@@ -793,25 +797,33 @@ export function getStandaloneHtmlString(): string {
           const item = pool[i % pool.length];
           deck.push({
             category: cat,
-            demographics: item.age + '歲，' + item.gender,
+            demographics: \`\${item.age}歲，\${item.gender}\`,
             bullets: formatBullets(item.clinical, cat),
             explanation: item.exp
           });
         }
       };
+
       addCategoryCards('red', redCount);
       addCategoryCards('yellow', yellowCount);
       addCategoryCards('green', greenCount);
       addCategoryCards('black', blackCount);
+
+      // Shuffle
       for (let i = deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [deck[i], deck[j]] = [deck[j], deck[i]];
       }
+
       currentCards = deck.map((c, idx) => ({ ...c, serialNumber: idx + 1 }));
       updateSummary();
       renderSheets();
     }
-    function shuffleDeck() { generateDeck(); }
+
+    function shuffleDeck() {
+      generateDeck();
+    }
+
     function setPreset(r, y, g, b) {
       document.getElementById('count-red').value = r;
       document.getElementById('count-yellow').value = y;
@@ -819,87 +831,180 @@ export function getStandaloneHtmlString(): string {
       document.getElementById('count-black').value = b;
       generateDeck();
     }
+
     function adjustCount(cat, delta) {
-      const input = document.getElementById('count-' + cat);
+      const input = document.getElementById(\`count-\${cat}\`);
       let val = (parseInt(input.value) || 0) + delta;
       if (val < 0) val = 0;
       input.value = val;
       generateDeck();
     }
-    function onInputChange() { generateDeck(); }
+
+    function onInputChange() {
+      generateDeck();
+    }
+
     function updateSummary() {
       const total = currentCards.length;
       const pages = Math.max(1, Math.ceil(total / 6));
-      document.getElementById('summary-total-people').textContent = total + ' 人';
-      document.getElementById('summary-total-pages').textContent = '共 ' + pages + ' 頁 A4';
+      document.getElementById('summary-total-people').textContent = \`\${total} 人\`;
+      document.getElementById('summary-total-pages').textContent = \`共 \${pages} 頁 A4\`;
     }
+
     function renderSheets() {
       const showAnswers = document.getElementById('opt-show-answers').checked;
       const showNumbers = document.getElementById('opt-show-numbers').checked;
       const showCuts = document.getElementById('opt-show-cuts').checked;
       const showKey = document.getElementById('opt-show-key').checked;
+
       const container = document.getElementById('sheets-output');
       container.innerHTML = '';
+
       const total = currentCards.length;
       const totalPages = Math.max(1, Math.ceil(total / 6));
+
       const catBadges = {
         red: { text: '🔴 紅色 (立即)', cls: 'badge-red' },
         yellow: { text: '🟡 黃色 (延遲)', cls: 'badge-yellow' },
         green: { text: '🟢 綠色 (輕傷)', cls: 'badge-green' },
         black: { text: '⚫ 黑色 (死亡)', cls: 'badge-black' }
       };
+
       for (let p = 0; p < totalPages; p++) {
         const pageCards = currentCards.slice(p * 6, (p + 1) * 6);
         while (pageCards.length < 6) {
           pageCards.push(null);
         }
+
         const sheetEl = document.createElement('div');
         sheetEl.className = 'print-page-sheet';
-        let html = '<div class="sheet-header"><div><strong>START 現場檢傷演練傷卡 (縱向六人版)</strong> · A4規格</div><div>第 ' + (p + 1) + ' 頁 / 共 ' + totalPages + ' 頁</div></div><div class="sheet-grid">';
-        pageCards.forEach(c => {
+
+        let html = \`
+          <div class="sheet-header">
+            <div><strong>START 現場檢傷演練傷卡 (縱向六人版)</strong> · A4規格</div>
+            <div>第 \${p + 1} 頁 / 共 \${totalPages} 頁</div>
+          </div>
+          <div class="sheet-grid">
+        \`;
+
+        pageCards.forEach((c) => {
           if (c) {
             const badge = catBadges[c.category];
-            html += '<div class="triage-card"><div><div class="card-top">' +
-              (showNumbers ? '<span style="position: absolute; left: 0; font-family: monospace; font-size: 11px; background: #e7e5e4; padding: 2px 6px; border-radius: 4px; font-weight: bold;">#' + String(c.serialNumber).padStart(2, '0') + '</span>' : '') +
-              '<span class="card-title">' + c.demographics.replace(/^年齡[、，]性別[：:]\s*/, '') + '</span>' +
-              (showAnswers ? '<span class="card-badge ' + badge.cls + '" style="position: absolute; right: 0;">' + badge.text + '</span>' : '') +
-              '</div><div class="card-divider"></div><ul class="card-bullets">' +
-              c.bullets.map(b => {
-                let cleanB = b
-                  .replace(/^可否行走[、，]意識狀態[：:]\s*/, '')
-                  .replace(/^呼吸狀態[、，]次數[：:]\s*/, '')
-                  .replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '');
-                cleanB = cleanB
-                  .replace(/\s*\([<≥>].*?\)/g, '')
-                  .replace(/\s*\([^)]*灌流[^)]*\)/g, '')
-                  .replace(/\s*\([^)]*低血壓[^)]*\)/g, '')
-                  .replace(/\s*\([^)]*休克[^)]*\)/g, '');
-                const cIdx = cleanB.indexOf('：');
-                const pfx = cIdx !== -1 ? cleanB.slice(0, cIdx + 1) : '';
-                const cnt = cIdx !== -1 ? cleanB.slice(cIdx + 1) : cleanB;
-                return '<li class="bullet-item"><span class="bullet-arrow">▸</span><span>' + (pfx ? '<strong>' + pfx + '</strong>' : '') + cnt + '</span></li>';
-              }).join('') +
-              '</ul></div><div class="card-footer"><span>START 檢傷演練卡 · #' + String(c.serialNumber).padStart(2, '0') + '</span><span>' + (showAnswers ? badge.text : '[現場演練判讀]') + '</span></div></div>';
+            html += \`
+              <div class="triage-card">
+                <div>
+                  <div class="card-top">
+                    \${showNumbers ? \`<span style="position: absolute; left: 0; font-family: monospace; font-size: 11px; background: #e7e5e4; padding: 2px 6px; border-radius: 4px; font-weight: bold;">#\${String(c.serialNumber).padStart(2, '0')}</span>\` : ''}
+                    <span class="card-title">\${c.demographics.replace(/^年齡[、，]性別[：:]\\s*/, '')}</span>
+                    \${showAnswers ? \`<span class="card-badge \${badge.cls}" style="position: absolute; right: 0;">\${badge.text}</span>\` : ''}
+                  </div>
+                  <div class="card-divider"></div>
+                  <ul class="card-bullets">
+                    \${c.bullets.map(b => {
+                      let cleanB = b
+                        .replace(/^可否行走[、，]意識狀態[：:]\\s*/, '')
+                        .replace(/^呼吸狀態[、，]次數[：:]\\s*/, '')
+                        .replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\\s*/, '');
+                      cleanB = cleanB
+                        .replace(/微血管充填時間[：:]\\s*/, '微血管充填時間')
+                        .replace(/\\s*\\([<≥>].*?\\)/g, '')
+                        .replace(/\\s*\\([^)]*灌流[^)]*\\)/g, '')
+                        .replace(/\\s*\\([^)]*低血壓[^)]*\\)/g, '')
+                        .replace(/\\s*\\([^)]*休克[^)]*\\)/g, '');
+                      const cIdx = cleanB.indexOf('：');
+                      const pfx = cIdx !== -1 ? cleanB.slice(0, cIdx + 1) : '';
+                      const cnt = cIdx !== -1 ? cleanB.slice(cIdx + 1) : cleanB;
+                      return \`
+                        <li class="bullet-item">
+                          <span class="bullet-arrow">▸</span>
+                          <span>\${pfx ? \`<strong>\${pfx}</strong>\` : ''}\${cnt}</span>
+                        </li>
+                      \`;
+                    }).join('')}
+                  </ul>
+                </div>
+                <div class="card-footer">
+                  <span>START 檢傷演練卡 · #\${String(c.serialNumber).padStart(2, '0')}</span>
+                  <span>\${showAnswers ? badge.text : '[現場演練判讀]'}</span>
+                </div>
+              </div>
+            \`;
           } else {
-            html += '<div class="empty-card"><div style="font-weight: bold; margin-bottom: 4px;">空白備用格</div><div>演練手填傷情</div></div>';
+            html += \`
+              <div class="empty-card">
+                <div style="font-weight: bold; margin-bottom: 4px;">空白備用格</div>
+                <div>演練手填傷情</div>
+              </div>
+            \`;
           }
         });
+
         if (showCuts) {
-          html += '<div class="cut-line-v"></div><div class="cut-line-h1"></div><div class="cut-line-h2"></div>';
+          html += \`
+            <div class="cut-line-v"></div>
+            <div class="cut-line-h1"></div>
+            <div class="cut-line-h2"></div>
+          \`;
         }
-        html += '</div><div class="sheet-footer"><span>檢傷指標：呼吸(&gt;30或&lt;10) · 脈搏/CRT&ge;2s · 意識遵從指令</span><span>排除孕婦情境 · START 標準演練題庫</span></div>';
+
+        html += \`
+          </div>
+          <div class="sheet-footer">
+            <span>檢傷指標：呼吸(&gt;30或&lt;10) · 脈搏/CRT&ge;2s · 意識遵從指令</span>
+            <span>排除孕婦情境 · START 標準演練題庫</span>
+          </div>
+        \`;
+
         sheetEl.innerHTML = html;
         container.appendChild(sheetEl);
       }
+
+      // Instructor Answer Key Sheet (Optional)
       if (showKey && currentCards.length > 0) {
         const keySheet = document.createElement('div');
         keySheet.className = 'print-page-sheet';
-        keySheet.innerHTML = '<div class="sheet-header"><div><strong>【教官/裁判專用】START 檢傷分類標準答案對照名冊</strong></div><div>參考存檔頁</div></div><div style="flex: 1; overflow: hidden;"><table class="answer-table"><thead><tr><th style="width: 48px; text-align: center;">編號</th><th style="width: 100px;">傷患基本資料</th><th style="width: 110px;">檢傷判定</th><th>判定關鍵依據與臨床徵候</th></tr></thead><tbody>' + currentCards.map(c => '<tr><td style="text-align: center; font-weight: bold; font-family: monospace;">#' + String(c.serialNumber).padStart(2, '0') + '</td><td><strong>' + c.demographics + '</strong></td><td><span class="card-badge ' + catBadges[c.category].cls + '">' + catBadges[c.category].text + '</span></td><td style="color: #44403c;">' + c.explanation + '</td></tr>').join('') + '</tbody></table></div><div class="sheet-footer"><span>演練評核存檔名冊 · 已扣除孕婦情境</span><span>START Disaster Triage Evaluation Key</span></div>';
+        keySheet.innerHTML = \`
+          <div class="sheet-header">
+            <div><strong>【教官/裁判專用】START 檢傷分類標準答案對照名冊</strong></div>
+            <div>參考存檔頁</div>
+          </div>
+          <div style="flex: 1; overflow: hidden;">
+            <table class="answer-table">
+              <thead>
+                <tr>
+                  <th style="width: 48px; text-align: center;">編號</th>
+                  <th style="width: 100px;">傷患基本資料</th>
+                  <th style="width: 110px;">檢傷判定</th>
+                  <th>判定關鍵依據與臨床徵候</th>
+                </tr>
+              </thead>
+              <tbody>
+                \${currentCards.map(c => \`
+                  <tr>
+                    <td style="text-align: center; font-weight: bold; font-family: monospace;">#\${String(c.serialNumber).padStart(2, '0')}</td>
+                    <td><strong>\${c.demographics}</strong></td>
+                    <td><span class="card-badge \${catBadges[c.category].cls}">\${catBadges[c.category].text}</span></td>
+                    <td style="color: #44403c;">\${c.explanation}</td>
+                  </tr>
+                \`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="sheet-footer">
+            <span>演練評核存檔名冊 · 已扣除孕婦情境</span>
+            <span>START Disaster Triage Evaluation Key</span>
+          </div>
+        \`;
         container.appendChild(keySheet);
       }
     }
-    window.addEventListener('DOMContentLoaded', () => { generateDeck(); });
+
+    // Init
+    window.addEventListener('DOMContentLoaded', () => {
+      generateDeck();
+    });
   </script>
 </body>
-</html>`;
+</html>
+`;
 }

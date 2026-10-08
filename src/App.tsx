@@ -132,13 +132,28 @@ export default function App() {
   };
 
   const handleSaveCard = (updated: TriageCard) => {
-    setCards((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c))
-    );
+    setCards((prev) => {
+      const oldCard = prev.find((c) => c.id === updated.id);
+      if (oldCard && oldCard.category !== updated.category) {
+        setCounts((cPrev) => ({
+          ...cPrev,
+          [oldCard.category]: Math.max(0, (cPrev[oldCard.category] || 0) - 1),
+          [updated.category]: (cPrev[updated.category] || 0) + 1,
+        }));
+      }
+      return prev.map((c) => (c.id === updated.id ? updated : c));
+    });
   };
 
   const handleDeleteCard = (cardId: string) => {
     setCards((prev) => {
+      const deletedCard = prev.find((c) => c.id === cardId);
+      if (deletedCard) {
+        setCounts((cPrev) => ({
+          ...cPrev,
+          [deletedCard.category]: Math.max(0, (cPrev[deletedCard.category] || 0) - 1),
+        }));
+      }
       const remaining = prev.filter((c) => c.id !== cardId);
       // Re-number
       return remaining.map((c, idx) => ({ ...c, serialNumber: idx + 1 }));
@@ -810,6 +825,7 @@ export default function App() {
 
       {/* Card Editor Modal */}
       <CardEditorModal
+        key={editingCard?.id}
         card={editingCard}
         isOpen={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}

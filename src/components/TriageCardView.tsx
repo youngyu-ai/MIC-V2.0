@@ -127,6 +127,7 @@ export const TriageCardView: React.FC<TriageCardViewProps> = ({
               .replace(/^可否行走[、，]意識狀態[：:]\s*/, '')
               .replace(/^呼吸狀態[、，]次數[：:]\s*/, '')
               .replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '')
+              .replace(/微血管充填時間[：:]\s*/, '微血管充填時間')
               .replace(/\s*\([<≥>].*?\)/g, '')
               .replace(/\s*\([^)]*灌流[^)]*\)/g, '')
               .replace(/\s*\([^)]*低血壓[^)]*\)/g, '')
@@ -178,7 +179,7 @@ export const TriageCardView: React.FC<TriageCardViewProps> = ({
         )}
 
         {interactive && (
-          <span className="text-[10.5px] text-stone-400 group-hover:text-amber-700 underline transition-colors">
+          <span className="no-print text-[10.5px] text-stone-400 group-hover:text-amber-700 underline transition-colors">
             點擊編輯傷情
           </span>
         )}

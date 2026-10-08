@@ -71,7 +71,7 @@ export const A4PrintSheet: React.FC<A4PrintSheetProps> = ({
                   card={card}
                   settings={settings}
                   onEdit={onEditCard}
-                  interactive={!isPrintPreview}
+                  interactive={Boolean(onEditCard)}
                 />
               </div>
             );
