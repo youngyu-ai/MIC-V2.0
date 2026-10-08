@@ -21,8 +21,6 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
   if (!isOpen || !card) return null;
 
   const [category, setCategory] = useState<TriageCategory>(card.category);
-  const [age, setAge] = useState<number>(card.age);
-  const [gender, setGender] = useState<'男性' | '女性'>(card.gender);
   const [demographics, setDemographics] = useState(card.demographics);
   const [bulletText, setBulletText] = useState(card.bullets.join('\n'));
   const [explanation, setExplanation] = useState(card.explanation || '');
@@ -30,8 +28,6 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
   useEffect(() => {
     if (card) {
       setCategory(card.category);
-      setAge(card.age);
-      setGender(card.gender);
       setDemographics(card.demographics);
       setBulletText(card.bullets.join('\n'));
       setExplanation(card.explanation || '');
@@ -47,36 +43,10 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
     const filtered = pool.filter((c) => !c.demographics.includes('孕婦') && !c.clinical.includes('孕婦'));
     const randomPick = filtered[Math.floor(Math.random() * filtered.length)];
     if (randomPick) {
-      setAge(randomPick.age);
-      setGender(randomPick.gender);
       setDemographics(randomPick.demographics);
       const newBullets = formatCaseBullets(randomPick.clinical, category);
       setBulletText(newBullets.join('\n'));
       setExplanation(randomPick.explanation);
-    }
-  };
-
-  const handleAgeChange = (val: number) => {
-    const validVal = isNaN(val) ? 0 : Math.max(0, val);
-    setAge(validVal);
-    setDemographics(`${validVal}歲，${gender}`);
-  };
-
-  const handleGenderChange = (val: '男性' | '女性') => {
-    setGender(val);
-    setDemographics(`${age}歲，${val}`);
-  };
-
-  const handleDemographicsChange = (val: string) => {
-    setDemographics(val);
-    const ageMatch = val.match(/(\d+)\s*歲/);
-    if (ageMatch) {
-      setAge(parseInt(ageMatch[1], 10));
-    }
-    if (val.includes('女')) {
-      setGender('女性');
-    } else if (val.includes('男')) {
-      setGender('男性');
     }
   };
 
@@ -87,16 +57,15 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
       .filter(Boolean);
 
     const ageMatch = demographics.match(/(\d+)\s*歲/);
-    const finalAge = ageMatch ? parseInt(ageMatch[1], 10) : age;
-    const finalGender: '男性' | '女性' = demographics.includes('女') ? '女性' : (demographics.includes('男') ? '男性' : gender);
-    const finalDemo = demographics.trim() || `${finalAge}歲，${finalGender}`;
+    const parsedAge = ageMatch ? parseInt(ageMatch[1], 10) : card.age;
+    const parsedGender: '男性' | '女性' = demographics.includes('女') ? '女性' : '男性';
 
     onSave({
       ...card,
       category,
-      demographics: finalDemo,
-      age: finalAge,
-      gender: finalGender,
+      demographics,
+      age: parsedAge,
+      gender: parsedGender,
       bullets: lines,
       explanation,
     });
@@ -153,73 +122,25 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
 
           {/* Demographics */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-stone-700">
                 基本資料 (年齡、性別)
               </label>
               <button
                 type="button"
                 onClick={handleSwapRandom}
-                className="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-900 font-bold hover:underline"
+                className="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-900 font-medium hover:underline"
               >
                 <RefreshCw size={12} />
                 隨機換一題官方題庫
               </button>
             </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-2">
-              <div>
-                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  年齡 (歲)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="120"
-                  value={age}
-                  onChange={(e) => handleAgeChange(parseInt(e.target.value, 10))}
-                  className="w-full px-3 py-1.5 text-sm border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
-                  placeholder="年齡"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  性別
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleGenderChange('男性')}
-                    className={`py-1.5 text-xs font-bold rounded-lg border text-center transition-all ${
-                      gender === '男性'
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-2xs'
-                        : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    男性
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleGenderChange('女性')}
-                    className={`py-1.5 text-xs font-bold rounded-lg border text-center transition-all ${
-                      gender === '女性'
-                        ? 'bg-rose-600 border-rose-600 text-white shadow-2xs'
-                        : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    女性
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <input
               type="text"
               value={demographics}
-              onChange={(e) => handleDemographicsChange(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-stone-50"
-              placeholder="傷卡抬頭字串，例如：6歲，男性"
+              onChange={(e) => setDemographics(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="例如：6歲，男性"
             />
           </div>
 
