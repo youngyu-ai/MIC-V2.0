@@ -771,7 +771,7 @@ export default function App() {
           {/* Printable Container */}
           <div
             id="print-container"
-            className="w-full flex flex-col items-center gap-6"
+            className="w-full max-w-full flex flex-col items-center gap-6 overflow-x-auto print:overflow-visible"
           >
             {/* Show specific page or all pages */}
             {pagedCards.map((pageBatch, pIdx) => {
@@ -781,7 +781,7 @@ export default function App() {
               return (
                 <div
                   key={`page-${pageNumber}`}
-                  className={`w-full justify-center ${isHiddenOnScreen ? 'hidden print:flex' : 'flex'}`}
+                  className={`w-full max-w-full overflow-x-auto print:overflow-visible justify-center ${isHiddenOnScreen ? 'hidden print:flex' : 'flex'}`}
                 >
                   <A4PrintSheet
                     pageIndex={pageNumber}
