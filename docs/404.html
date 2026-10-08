@@ -9,8 +9,17 @@
     <meta property="og:description" content="專業大量傷病患 START 檢傷分類傷情卡產生器，支援手動指定紅黃綠黑人數、自動統計、精確 A4 縱向六人傷卡排版與 PDF 匯出列印存檔。" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="module" crossorigin src="./assets/index-C--dAS2b.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BlAaJdhU.css">
+    <script>
+      // 確保 GitHub Pages 子路徑訪問時有尾部斜線，使 ./assets/ 能正確解析，避免白畫面
+      (function() {
+        var path = window.location.pathname;
+        if (path && path.length > 1 && !path.endsWith('/') && !path.split('/').pop().includes('.')) {
+          window.location.replace(path + '/' + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-BVoU__4-.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B10yPyFz.css">
   </head>
   <body>
     <div id="root"></div>
