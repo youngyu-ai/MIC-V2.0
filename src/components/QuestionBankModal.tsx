@@ -143,7 +143,7 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
                     </span>
                     {getBadge(item.category)}
                     <span className="text-[11px] font-mono text-stone-400">
-                      題庫 #{item.id}
+                      題庫 #{item.category === 'red' ? 'R' : item.category === 'yellow' ? 'Y' : item.category === 'green' ? 'G' : 'B'}-{String(item.id).padStart(2, '0')}
                     </span>
                   </div>
                   <p className="text-xs text-stone-700 leading-relaxed font-sans">

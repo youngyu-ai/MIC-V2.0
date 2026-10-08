@@ -866,7 +866,7 @@ export function getStandaloneHtmlString(): string {
             const badge = catBadges[c.category];
             html += '<div class="triage-card"><div><div class="card-top">' +
               (showNumbers ? '<span style="position: absolute; left: 0; font-family: monospace; font-size: 11px; background: #e7e5e4; padding: 2px 6px; border-radius: 4px; font-weight: bold;">#' + String(c.serialNumber).padStart(2, '0') + '</span>' : '') +
-              '<span class="card-title">' + c.demographics + '</span>' +
+              '<span class="card-title"><span style="color: #57534e; font-weight: bold;">年齡、性別：</span>' + c.demographics.replace(/^年齡[、，]性別[：:]\s*/, '') + '</span>' +
               (showAnswers ? '<span class="card-badge ' + badge.cls + '" style="position: absolute; right: 0;">' + badge.text + '</span>' : '') +
               '</div><div class="card-divider"></div><ul class="card-bullets">' +
               c.bullets.map(b => {

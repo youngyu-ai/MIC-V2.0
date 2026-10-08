@@ -221,7 +221,7 @@ export default function App() {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Open MCI Simulator */}
             <a
-              href="/mci_simulator.html"
+              href="./mci_simulator.html"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-300 bg-sky-950/80 hover:bg-sky-900 hover:text-sky-200 rounded-lg border border-sky-700/60 transition-colors shadow-2xs"
               title="開啟消防署大量傷病患系統練習模擬器（含檢傷追蹤、傷卡列印、指揮管制看板）"
             >

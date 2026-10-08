@@ -94,7 +94,8 @@ export const TriageCardView: React.FC<TriageCardViewProps> = ({
             className="font-extrabold text-stone-900 tracking-wide leading-tight text-center"
             style={{ fontSize: `${titleSize}px` }}
           >
-            {card.demographics}
+            <span className="text-stone-700 font-bold">年齡、性別：</span>
+            <span>{card.demographics.replace(/^年齡[、，]性別[：:]\s*/, '')}</span>
           </h3>
 
           {/* Answer Tag: Badge mode */}
