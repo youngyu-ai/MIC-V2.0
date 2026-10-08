@@ -3148,11 +3148,11 @@
       let count = 0;
       const nowTimeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });
       currentTriageCards.forEach((c, idx) => {
-        const id = `SM00T${600 + idx}`;
-        const parts = c.demographics.split('，');
-        const ageNum = parseInt(parts[0]) || 30;
-        const gen = (parts[1] || '').includes('女') ? '女' : '男';
-        const clinicalText = c.clinical || (c.bullets && c.bullets.length > 3 ? c.bullets[3].replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '') : (c.bullets ? c.bullets.join('；') : ''));
+        const id = `SM${263601 + idx}`;
+        const ageMatch = c.demographics.match(/(\d+)\s*歲/);
+        const ageNum = ageMatch ? parseInt(ageMatch[1], 10) : (parseInt(c.demographics) || 30);
+        const gen = c.demographics.includes('女') ? '女' : '男';
+        const clinicalText = c.clinical || (c.bullets ? c.bullets.join('；') : '');
         patientsDB[id] = {
           id: id,
           level: c.category,
@@ -3171,9 +3171,14 @@
         };
         count++;
       });
+      const printCountSelect = document.getElementById('print-count-select');
+      if (printCountSelect) {
+        const needed = Math.min(50, Math.max(5, Math.ceil(count / 5) * 5));
+        printCountSelect.value = String(needed);
+      }
       broadcastData();
       renderPrintCards();
-      alert(`已成功將 ${count} 位 START 檢傷傷卡病患匯入至大量傷病患指揮清單！`);
+      alert(`已成功將 ${count} 位 START 檢傷傷卡病患匯入至大量傷病患指揮清單，檢傷卡已同步！`);
       switchTab('tab-commander');
       switchCommanderSubView('view2');
     }

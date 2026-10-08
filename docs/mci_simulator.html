@@ -41,7 +41,8 @@
       body:not(.print-mode-triage-gen) #tab-commander,
       body:not(.print-mode-triage-gen) #modal-patient-info,
       body:not(.print-mode-triage-gen) #modal-card-picker,
-      body:not(.print-mode-triage-gen) #modal-photo-notice {
+      body:not(.print-mode-triage-gen) #modal-photo-notice,
+      body:not(.print-mode-triage-gen) #modal-triage-card-editor {
         display: none !important;
       }
       body:not(.print-mode-triage-gen) #tab-print,
@@ -57,7 +58,8 @@
       body.print-mode-triage-gen #tab-commander,
       body.print-mode-triage-gen #modal-patient-info,
       body.print-mode-triage-gen #modal-card-picker,
-      body.print-mode-triage-gen #modal-photo-notice {
+      body.print-mode-triage-gen #modal-photo-notice,
+      body.print-mode-triage-gen #modal-triage-card-editor {
         display: none !important;
       }
       body.print-mode-triage-gen #tab-triage-gen,
@@ -1415,6 +1417,66 @@
     </div>
   </div>
 
+  <!-- ★【START 傷卡即時編輯器】彈跳視窗 -->
+  <div id="modal-triage-card-editor" onclick="if(event.target===this) closeTriageCardEditor()" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-stone-200">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-stone-200 bg-stone-50">
+        <div class="font-bold text-stone-900 text-base" id="edit-tc-title">
+          編輯傷患卡
+        </div>
+        <button onclick="closeTriageCardEditor()" class="p-1 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition">
+          ✕
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1.5">檢傷分類判定</label>
+          <select id="edit-tc-category" class="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg font-bold bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <option value="red">🔴 紅色 (重傷·立即處理)</option>
+            <option value="yellow">🟡 黃色 (中傷·延遲處理)</option>
+            <option value="green">🟢 綠色 (輕傷·可走動)</option>
+            <option value="black">⚫ 黑色 (明顯死亡/無生機)</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-bold text-stone-700">基本資料 (年齡、性別)</label>
+            <button type="button" onclick="swapRandomTriageCard()" class="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-900 font-bold hover:underline">
+              🎲 隨機抽換官方題庫
+            </button>
+          </div>
+          <input type="text" id="edit-tc-demographics" class="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="例如：45歲，男性">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">傷情徵候清單 (每行一條)</label>
+          <textarea id="edit-tc-bullets" rows="5" class="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">檢傷關鍵判定依據 (裁判解答用)</label>
+          <textarea id="edit-tc-explanation" rows="2" class="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+      </div>
+
+      <div class="px-5 py-3 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
+        <button type="button" onclick="deleteTriageCard()" class="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 font-bold text-xs rounded-lg transition flex items-center gap-1">
+          🗑️ 刪除此傷卡
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeTriageCardEditor()" class="px-4 py-1.5 border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold text-xs rounded-lg transition">
+            取消
+          </button>
+          <button type="button" onclick="saveTriageCardEdit()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow transition">
+            儲存修改
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== 核心邏輯 JavaScript ======================== -->
   <script>
     const STORAGE_KEY = 'mci_sim_patients_db';
@@ -2423,6 +2485,13 @@
     }
 
     function createFrontCardElement(id) {
+      const p = patientsDB[id];
+      const isMale = p?.gender === '男';
+      const isFemale = p?.gender === '女';
+      const ageStr = (p?.age !== undefined && p?.age !== null && p?.age !== '' && p?.age !== 0) ? `${p.age}` : '';
+      const notesStr = p?.notes || '';
+      const nameStr = p?.name || '不詳';
+
       const el = document.createElement('div');
       el.className = "border-r border-b border-t border-dashed border-slate-400 bg-white flex flex-col justify-between box-border text-slate-900 relative flex-shrink-0";
       el.style.width = '80mm';
@@ -2450,27 +2519,32 @@
 
           <div class="relative w-[69mm] mx-auto" style="height: 19mm;">
             <div class="absolute left-0 top-[1.5mm] text-[14px] font-bold text-black">姓名</div>
-            <div class="absolute right-0 bottom-[2mm] text-[14px] font-bold text-black">不詳</div>
+            <div class="absolute right-0 bottom-[2mm] text-[14px] font-bold text-black">${nameStr}</div>
             <div class="absolute left-0 right-0 bottom-0 border-b-2 border-black"></div>
           </div>
 
           <div class="w-[69mm] mx-auto flex justify-between items-center text-[13.5px] text-black pt-2 pb-1">
             <div class="w-[33mm]">
               <div class="flex justify-between pb-0.5 font-bold px-0.5">
-                <span>男</span><span>女</span><span>不明</span>
+                <span class="${isMale ? 'bg-black text-white px-1 rounded-sm' : ''}">男</span>
+                <span class="${isFemale ? 'bg-black text-white px-1 rounded-sm' : ''}">女</span>
+                <span class="${!isMale && !isFemale ? 'bg-black text-white px-1 rounded-sm' : ''}">不明</span>
               </div>
               <div class="w-full border-b border-black"></div>
             </div>
             <div class="w-[33mm]">
               <div class="flex justify-between pb-0.5 font-bold px-1">
-                <span>約</span><span>歲</span>
+                <span>約</span>
+                <span class="font-mono text-base font-bold">${ageStr}</span>
+                <span>歲</span>
               </div>
               <div class="w-full border-b border-black"></div>
             </div>
           </div>
 
-          <div class="w-[69mm] mx-auto border border-black rounded-none p-2 flex flex-col justify-start" style="height: 38mm;">
+          <div class="w-[69mm] mx-auto border border-black rounded-none p-2 flex flex-col justify-start overflow-hidden" style="height: 38mm;">
             <span class="text-[12px] text-black font-medium">補充說明</span>
+            <div class="text-[11px] text-slate-800 mt-0.5 leading-snug line-clamp-4 break-words">${notesStr}</div>
           </div>
         </div>
 
@@ -2511,10 +2585,14 @@
           </div>
           <div class="flex-1 pl-2 space-y-1.5 text-[11px]">
             <div class="flex justify-between border-b border-slate-500 pb-0.5 font-bold">
-              <span>男</span><span>女</span><span>不明</span>
+              <span class="${isMale ? 'bg-black text-white px-1 rounded-sm' : ''}">男</span>
+              <span class="${isFemale ? 'bg-black text-white px-1 rounded-sm' : ''}">女</span>
+              <span>不明</span>
             </div>
             <div class="flex justify-between border-b border-slate-500 pb-0.5 font-bold">
-              <span>約</span><span>歲</span>
+              <span>約</span>
+              <span class="font-mono font-bold">${ageStr}</span>
+              <span>歲</span>
             </div>
           </div>
         </div>
@@ -2600,43 +2678,47 @@
           </table>
         </div>
 
+        <!-- 黑色撕條 (背面鏡像對齊：條碼置左，0 數字置右) -->
         <div class="bg-[#1a1a1a] text-white flex items-center justify-between px-3 border-t border-dashed border-slate-400 relative" style="height: 25mm;">
-          <div class="text-5xl font-normal leading-none absolute left-[10mm] select-none" style="transform: scaleY(1.15);">0</div>
-          <div class="bg-white rounded-sm px-2 py-0.5 flex flex-col items-center justify-center ml-auto" style="width: 56mm; height: 20mm;">
+          <div class="bg-white rounded-sm px-2 py-0.5 flex flex-col items-center justify-center mr-auto" style="width: 56mm; height: 20mm; margin-left: 2mm;">
             <svg id="barcode-back-${id}"></svg>
           </div>
+          <div class="text-5xl font-normal leading-none absolute right-[10mm] select-none" style="transform: scaleY(1.15);">0</div>
         </div>
 
+        <!-- 紅色撕條 (I) (背面鏡像：右側 13mm) -->
         <div class="bg-[#e64353] text-white flex items-center border-t border-b border-dashed border-white relative" style="height: 20mm;">
-          <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm absolute left-[13mm]"></div>
+          <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm absolute right-[13mm]"></div>
         </div>
 
+        <!-- 黃色撕條 (II) (背面鏡像：右側 11.5mm) -->
         <div class="bg-[#f0b83b] text-white flex items-center border-b border-dashed border-white relative" style="height: 20mm;">
-          <div class="flex items-center space-x-2 absolute left-[11.5mm]">
+          <div class="flex items-center space-x-2 absolute right-[11.5mm]">
             <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm"></div>
             <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm"></div>
           </div>
         </div>
 
-        <!-- 綠色撕條 (III) -->
+        <!-- 綠色撕條 (III) (背面鏡像：右側 10mm) -->
         <div class="bg-[#4cb069] text-white flex items-center relative" style="height: 20mm;">
-          <div class="flex items-center space-x-1.5 absolute left-[10mm]">
+          <div class="flex items-center space-x-1.5 absolute right-[10mm]">
             <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm"></div>
             <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm"></div>
             <div class="w-[2.2mm] h-[8.5mm] bg-white rounded-sm"></div>
           </div>
         </div>
 
+        <!-- 底部存根 (背面鏡像：存根置左，撕線置右) -->
         <div class="bg-[#e8e8e8] border-t border-dashed border-slate-500 px-1.5 flex items-center justify-between text-[11px] text-slate-800" style="height: 20mm;">
-          <div class="writing-vertical-cjk text-slate-600 text-[9px] font-bold tracking-tighter pr-1 border-r border-dashed border-slate-400 h-full flex items-center justify-center">
-            檢傷沿線撕下
-          </div>
-          <div class="flex items-center space-x-1 pl-1">
-            <div id="qr-back-bot-${id}" class="bg-white p-0.5 border border-slate-300"></div>
-            <div class="serial-vertical text-[12px] font-bold text-slate-900 leading-none">${id}</div>
-          </div>
-          <div class="flex-1 text-center font-bold text-[17px] text-slate-900 tracking-widest">
+          <div class="flex-1 text-center font-bold text-[17px] text-slate-900 tracking-widest pl-2">
             檢傷存根
+          </div>
+          <div class="flex items-center space-x-1 pr-1">
+            <div class="serial-vertical text-[12px] font-bold text-slate-900 leading-none">${id}</div>
+            <div id="qr-back-bot-${id}" class="bg-white p-0.5 border border-slate-300"></div>
+          </div>
+          <div class="writing-vertical-cjk text-slate-600 text-[9px] font-bold tracking-tighter pl-1 border-l border-dashed border-slate-400 h-full flex items-center justify-center">
+            檢傷沿線撕下
           </div>
         </div>
       `;
@@ -2853,7 +2935,8 @@
             category: cat,
             demographics: item.age + '歲，' + item.gender,
             bullets: formatTriageBullets(item.clinical, cat),
-            explanation: item.exp
+            explanation: item.exp,
+            clinical: item.clinical
           });
         }
       };
@@ -2927,7 +3010,7 @@
         pageCards.forEach(c => {
           if (c) {
             const badge = catBadges[c.category];
-            html += '<div class="triage-card"><div><div class="card-top">' +
+            html += '<div class="triage-card" onclick="openTriageCardEditor(' + (c.serialNumber - 1) + ')" style="cursor: pointer;" title="💡 點擊直接修改此傷卡傷情"><div><div class="card-top">' +
               (showNumbers ? '<span style="position: absolute; left: 0; font-family: monospace; font-size: 11px; background: #e7e5e4; padding: 2px 6px; border-radius: 4px; font-weight: bold;">#' + String(c.serialNumber).padStart(2, '0') + '</span>' : '') +
               '<span class="card-title">' + c.demographics.replace(/^年齡[、，]性別[：:]\s*/, '') + '</span>' +
               (showAnswers ? '<span class="card-badge ' + badge.cls + '" style="position: absolute; right: 0;">' + badge.text + '</span>' : '') +
@@ -2936,8 +3019,8 @@
                 let cleanB = b
                   .replace(/^可否行走[、，]意識狀態[：:]\s*/, '')
                   .replace(/^呼吸狀態[、，]次數[：:]\s*/, '')
-                  .replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '');
-                cleanB = cleanB
+                  .replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '')
+                  .replace(/微血管充填時間[：:]\s*/, '微血管充填時間')
                   .replace(/\s*\([<≥>].*?\)/g, '')
                   .replace(/\s*\([^)]*灌流[^)]*\)/g, '')
                   .replace(/\s*\([^)]*低血壓[^)]*\)/g, '')
@@ -2947,7 +3030,7 @@
                 const cnt = cIdx !== -1 ? cleanB.slice(cIdx + 1) : cleanB;
                 return '<li class="bullet-item"><span class="bullet-arrow">▸</span><span>' + (pfx ? '<strong>' + pfx + '</strong>' : '') + cnt + '</span></li>';
               }).join('') +
-              '</ul></div><div class="card-footer"><span>START 檢傷演練卡 · #' + String(c.serialNumber).padStart(2, '0') + '</span><span>' + (showAnswers ? badge.text : '[現場演練判讀]') + '</span></div></div>';
+              '</ul></div><div class="card-footer"><span>START 檢傷演練卡 · #' + String(c.serialNumber).padStart(2, '0') + '</span><span class="no-print-triage text-amber-700 underline text-[10.5px]">點擊修改</span><span>' + (showAnswers ? badge.text : '[現場演練判讀]') + '</span></div></div>';
           } else {
             html += '<div class="empty-card"><div style="font-weight: bold; margin-bottom: 4px;">空白備用格</div><div>演練手填傷情</div></div>';
           }
@@ -2965,6 +3048,87 @@
         keySheet.innerHTML = '<div class="sheet-header"><div><strong>【教官/裁判專用】START 檢傷分類標準答案對照名冊</strong></div><div>參考存檔頁</div></div><div style="flex: 1; overflow: hidden;"><table class="answer-table"><thead><tr><th style="width: 48px; text-align: center;">編號</th><th style="width: 100px;">傷患基本資料</th><th style="width: 110px;">檢傷判定</th><th>判定關鍵依據與臨床徵候</th></tr></thead><tbody>' + currentTriageCards.map(c => '<tr><td style="text-align: center; font-weight: bold; font-family: monospace;">#' + String(c.serialNumber).padStart(2, '0') + '</td><td><strong>' + c.demographics + '</strong></td><td><span class="card-badge ' + catBadges[c.category].cls + '">' + catBadges[c.category].text + '</span></td><td style="color: #44403c;">' + c.explanation + '</td></tr>').join('') + '</tbody></table></div><div class="sheet-footer"><span>演練評核存檔名冊 · 已扣除孕婦情境</span><span>START Disaster Triage Evaluation Key</span></div>';
         container.appendChild(keySheet);
       }
+    }
+
+    let editingTriageCardIdx = null;
+
+    function openTriageCardEditor(idx) {
+      if (!currentTriageCards || !currentTriageCards[idx]) return;
+      editingTriageCardIdx = idx;
+      const c = currentTriageCards[idx];
+      document.getElementById('edit-tc-title').textContent = '編輯傷患卡 #' + String(c.serialNumber).padStart(2, '0');
+      document.getElementById('edit-tc-category').value = c.category;
+      document.getElementById('edit-tc-demographics').value = c.demographics;
+      document.getElementById('edit-tc-bullets').value = (c.bullets || []).join('\n');
+      document.getElementById('edit-tc-explanation').value = c.explanation || '';
+      document.getElementById('modal-triage-card-editor').classList.remove('hidden');
+    }
+
+    function closeTriageCardEditor() {
+      document.getElementById('modal-triage-card-editor').classList.add('hidden');
+      editingTriageCardIdx = null;
+    }
+
+    function swapRandomTriageCard() {
+      if (editingTriageCardIdx === null) return;
+      const cat = document.getElementById('edit-tc-category').value;
+      const pool = (TRIAGE_CASE_BANK[cat] || []).filter(item => !item.clinical.includes('孕') && !(item.age + '').includes('孕'));
+      if (pool.length === 0) return;
+      const randomPick = pool[Math.floor(Math.random() * pool.length)];
+      if (randomPick) {
+        document.getElementById('edit-tc-demographics').value = randomPick.age + '歲，' + randomPick.gender;
+        const newBullets = formatTriageBullets(randomPick.clinical, cat);
+        document.getElementById('edit-tc-bullets').value = newBullets.join('\n');
+        document.getElementById('edit-tc-explanation').value = randomPick.exp || '';
+      }
+    }
+
+    function saveTriageCardEdit() {
+      if (editingTriageCardIdx === null || !currentTriageCards[editingTriageCardIdx]) return;
+      const c = currentTriageCards[editingTriageCardIdx];
+      const oldCat = c.category;
+      const newCat = document.getElementById('edit-tc-category').value;
+      const newDemo = document.getElementById('edit-tc-demographics').value.trim();
+      const newBulletsText = document.getElementById('edit-tc-bullets').value.trim();
+      const newExp = document.getElementById('edit-tc-explanation').value.trim();
+      const bulletLines = newBulletsText.split('\n').map(l => l.trim()).filter(Boolean);
+
+      if (oldCat !== newCat) {
+        const oldInput = document.getElementById('triage-count-' + oldCat);
+        const newInput = document.getElementById('triage-count-' + newCat);
+        if (oldInput) oldInput.value = Math.max(0, (parseInt(oldInput.value) || 0) - 1);
+        if (newInput) newInput.value = (parseInt(newInput.value) || 0) + 1;
+      }
+
+      currentTriageCards[editingTriageCardIdx] = {
+        ...c,
+        category: newCat,
+        demographics: newDemo,
+        bullets: bulletLines,
+        explanation: newExp,
+        clinical: bulletLines.join('；')
+      };
+
+      closeTriageCardEditor();
+      updateTriageSummary();
+      renderTriageSheets();
+    }
+
+    function deleteTriageCard() {
+      if (editingTriageCardIdx === null || !currentTriageCards[editingTriageCardIdx]) return;
+      const c = currentTriageCards[editingTriageCardIdx];
+      const cat = c.category;
+      const input = document.getElementById('triage-count-' + cat);
+      if (input) input.value = Math.max(0, (parseInt(input.value) || 0) - 1);
+
+      currentTriageCards.splice(editingTriageCardIdx, 1);
+      currentTriageCards.forEach((card, idx) => {
+        card.serialNumber = idx + 1;
+      });
+
+      closeTriageCardEditor();
+      updateTriageSummary();
+      renderTriageSheets();
     }
 
     function printTriageCards() {
@@ -2988,6 +3152,7 @@
         const parts = c.demographics.split('，');
         const ageNum = parseInt(parts[0]) || 30;
         const gen = (parts[1] || '').includes('女') ? '女' : '男';
+        const clinicalText = c.clinical || (c.bullets && c.bullets.length > 3 ? c.bullets[3].replace(/^其他臨床評估或傷情徵候[、，]脈搏[、，]血壓[：:]\s*/, '') : (c.bullets ? c.bullets.join('；') : ''));
         patientsDB[id] = {
           id: id,
           level: c.category,
@@ -3001,12 +3166,13 @@
           departTime: '',
           arrivedTime: '',
           phone: '',
-          features: c.bullets[0] || '',
-          notes: `${c.bullets.join('；')} (依據：${c.explanation})`
+          features: '無',
+          notes: clinicalText
         };
         count++;
       });
       broadcastData();
+      renderPrintCards();
       alert(`已成功將 ${count} 位 START 檢傷傷卡病患匯入至大量傷病患指揮清單！`);
       switchTab('tab-commander');
       switchCommanderSubView('view2');

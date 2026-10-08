@@ -11,12 +11,18 @@
     <meta name="twitter:card" content="summary_large_image" />
     <script>
       // 確保 GitHub Pages 子路徑訪問時有尾部斜線，使 ./assets/ 能正確解析，避免白畫面
-      (function() {
-        var path = window.location.pathname;
+      try {
+        var loc = window.location;
+        var path = loc.pathname;
         if (path && path.length > 1 && !path.endsWith('/') && !path.split('/').pop().includes('.')) {
-          window.location.replace(path + '/' + window.location.search + window.location.hash);
+          // 僅在非 iframe 環境下執行，避免在嵌入預覽時陷入重定向白畫面
+          if (window.self === window.top) {
+            loc.replace(path + '/' + loc.search + loc.hash);
+          }
         }
-      })();
+      } catch (e) {
+        // 忽略沙盒限制錯誤，避免中斷後續腳本載入
+      }
     </script>
   </head>
   <body>
